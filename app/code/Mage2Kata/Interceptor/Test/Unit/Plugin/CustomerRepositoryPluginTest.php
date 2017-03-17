@@ -25,15 +25,33 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 	 */
 	protected $_mockCustomerToBeSaved;
 
+	/**
+	 * @var $_mockSavedCustomer CustomerInterface
+	 */
+	protected $_mockSavedCustomer;
+
 	public function __invoke(CustomerInterface $customer, $passwordHash)
 	{
+		return $this->_mockSavedCustomer;
 	}
 
 	protected function setUp()
 	{
 		$this->_mockCustomerRepository      = $this->getMock( CustomerRepositoryInterface::class);
 		$this->_mockCustomerToBeSaved       = $this->getMock( CustomerInterface::class);
+		$this->_mockSavedCustomer           = $this->getMock( CustomerInterface::class);
 		$this->_customerRepositoryPlugin    = new CustomerRepositoryPlugin();
+
+//		$this->_mockExternalCustomerApi     = $this->getMock( ExternalCustomerApi::class, ['registerNewCustomer']);
+	}
+
+	protected function callAroundSavePlugin()
+	{
+		$subject      = $this->_mockCustomerRepository;
+		$proceed      = $this;
+		$customer     = $this->_mockCustomerToBeSaved;
+		$passwordHash = null;
+		return $this->_customerRepositoryPlugin->aroundSave( $subject, $proceed, $customer, $passwordHash );
 	}
 
 	public function testItCanBeInstantiated()
@@ -43,10 +61,11 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 
 	public function testTheAroundSaveMethodCanBeCalled()
 	{
-		$subject        = $this->_mockCustomerRepository;
-		$proceed        = $this;
-		$customer       = $this->_mockCustomerToBeSaved;
-		$passwordHash   = null;
-		$this->_customerRepositoryPlugin->aroundSave($subject, $proceed, $customer, $passwordHash);
+		$this->assertSame( $this->_mockSavedCustomer, $this->callAroundSavePlugin() );
 	}
-}
+
+//	public function testItNotifiesTheExternalApiForNewCustomers( )
+//	{
+//		$this->_mockCustomerToBeSaved->method('getId')->willReturn(null);
+//	}
+//}

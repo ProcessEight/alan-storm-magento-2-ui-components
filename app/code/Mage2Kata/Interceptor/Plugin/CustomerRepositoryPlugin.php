@@ -9,10 +9,18 @@
 namespace Mage2Kata\Interceptor\Plugin;
 
 
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+
 class CustomerRepositoryPlugin
 {
-	public function aroundSave( $subject, $proceed, $customer, $passwordHash )
+	public function aroundSave(
+		CustomerRepositoryInterface $subject,
+		callable $proceed,
+		CustomerInterface $customer,
+		$passwordHash = null
+	)
 	{
-
+		return $proceed($customer, $passwordHash);
 	}
 }
