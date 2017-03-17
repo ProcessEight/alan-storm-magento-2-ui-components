@@ -34,7 +34,9 @@ class CustomerRepositoryPlugin
 		$passwordHash = null
 	)
 	{
-		$this->customerApi->registerNewCustomer();
+		if($customer->getId() == null) {
+			$this->customerApi->registerNewCustomer();
+		}
 		return $proceed($customer, $passwordHash);
 	}
 }

@@ -309,3 +309,61 @@ class CustomerRepositoryPlugin
 	}
 }
 ```
+
+Now let's add a test that ensures the `registerNewCustomer()` method is not called when existing customers are saved.
+
+```php
+<?php
+
+namespace Mage2Kata\Interceptor\Plugin;
+
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+
+class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
+{
+    // ... everything else ...
+    
+	public function testItDoesNotifyTheExternalApiForExistingCustomers()
+	{
+		// The getId() method of the customer to be saved will return null because it has not been saved yet
+		$this->_mockCustomerToBeSaved->method( 'getId' )->willReturn( 23 );
+
+		// The registerNewCustomer method of the API is expected to be called exactly once, because a customer can only register once
+		$this->_mockExternalCustomerApi->expects( $this->never() )->method( 'registerNewCustomer' );
+
+		// Now call the plugin so PHPUnit can test it
+		$this->callAroundSavePlugin();
+	}
+}
+```
+The test fails because the `registerNewCustomer()` methods is always being called. Let's add a check to make sure it only gets called for new customers:
+```php
+<?php
+
+namespace Mage2Kata\Interceptor\Plugin;
+
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+
+class CustomerRepositoryPlugin
+{
+    // ... other methods ...
+    
+	public function aroundSave(
+		CustomerRepositoryInterface $subject,
+		callable $proceed,
+		CustomerInterface $customer,
+		$passwordHash = null
+	)
+	{
+		// Only register customer if they are new
+		if($customer->getId() == null) {
+			$this->customerApi->registerNewCustomer();
+		}
+		return $proceed($customer, $passwordHash);
+	}
+}
+```
+With this change, our test is back to green again.
+

@@ -78,4 +78,16 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 		// Now call the plugin so PHPUnit can test it
 		$this->callAroundSavePlugin();
 	}
+
+	public function testItDoesNotifyTheExternalApiForExistingCustomers()
+	{
+		// The getId() method of the customer to be saved will return null because it has not been saved yet
+		$this->_mockCustomerToBeSaved->method( 'getId' )->willReturn( 23 );
+
+		// The registerNewCustomer method of the API is expected to be called exactly once, because a customer can only register once
+		$this->_mockExternalCustomerApi->expects( $this->never() )->method( 'registerNewCustomer' );
+
+		// Now call the plugin so PHPUnit can test it
+		$this->callAroundSavePlugin();
+	}
 }
