@@ -43,8 +43,8 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 		$this->_mockCustomerRepository   = $this->getMock( CustomerRepositoryInterface::class );
 		$this->_mockCustomerToBeSaved    = $this->getMock( CustomerInterface::class );
 		$this->_mockSavedCustomer        = $this->getMock( CustomerInterface::class );
-		$this->_mockExternalCustomerApi = $this->getMock( ExternalCustomerApi::class, [ 'registerNewCustomer' ] );
-		$this->_customerRepositoryPlugin = new CustomerRepositoryPlugin($this->_mockExternalCustomerApi);
+		$this->_mockExternalCustomerApi  = $this->getMock( ExternalCustomerApi::class, [ 'registerNewCustomer' ] );
+		$this->_customerRepositoryPlugin = new CustomerRepositoryPlugin( $this->_mockExternalCustomerApi );
 	}
 
 	protected function callAroundSavePlugin()
@@ -69,11 +69,16 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 
 	public function testItNotifiesTheExternalApiForNewCustomers()
 	{
+		$customerId = 123;
+
 		// The getId() method of the customer to be saved will return null because it has not been saved yet
 		$this->_mockCustomerToBeSaved->method( 'getId' )->willReturn( null );
 
+		// Once our customer has been saved, it will have an ID, which we can then pass to the registerNewCustomer method
+		$this->_mockSavedCustomer->method( 'getId' )->willReturn( $customerId );
+
 		// The registerNewCustomer method of the API is expected to be called exactly once, because a customer can only register once
-		$this->_mockExternalCustomerApi->expects( $this->once() )->method( 'registerNewCustomer' );
+		$this->_mockExternalCustomerApi->expects( $this->once() )->method( 'registerNewCustomer' )->with( $customerId );
 
 		// Now call the plugin so PHPUnit can test it
 		$this->callAroundSavePlugin();

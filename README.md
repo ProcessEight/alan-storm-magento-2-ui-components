@@ -15,8 +15,6 @@ zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ cp -f dev/tests/in
 
 ## The Around Interceptor Kata
 
-### Step one
-
 Create the Plugin test:
 
 ```php
@@ -367,3 +365,67 @@ class CustomerRepositoryPlugin
 ```
 With this change, our test is back to green again.
 
+Now it would make sense to pass in a customer ID to `registerNewCustomer()`. In our little test scenario, we can assume that a customer ID is all the `registerNewCustomer()` method needs to actually register a new customer.
+
+Let's update our `testItNotifiesTheExternalApiForNewCustomers()` to reflect this requirement:
+```php
+
+	public function testItNotifiesTheExternalApiForNewCustomers()
+	{
+		$customerId = 123;
+
+		// The getId() method of the customer to be saved will return null because it has not been saved yet
+		$this->_mockCustomerToBeSaved->method( 'getId' )->willReturn( null );
+
+		// Once our customer has been saved, it will have an ID, which we can then pass to the registerNewCustomer method
+		$this->_mockSavedCustomer->method( 'getId')->willReturn( $customerId );
+
+		// The registerNewCustomer method of the API is expected to be called exactly once, because a customer can only register once
+		$this->_mockExternalCustomerApi->expects( $this->once() )->method( 'registerNewCustomer' )->with( $customerId );
+
+		// Now call the plugin so PHPUnit can test it
+		$this->callAroundSavePlugin();
+	}
+
+```
+Our test fails again. We modify the `CustomerRepositoryPlugin` to satisfy the test:
+```php
+<?php
+
+namespace Mage2Kata\Interceptor\Plugin;
+
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+
+class CustomerRepositoryPlugin
+{
+    // ... other methods ...
+    
+	public function aroundSave(
+		CustomerRepositoryInterface $subject,
+		callable $proceed,
+		CustomerInterface $customer,
+		$passwordHash = null
+	)
+	{
+		$savedCustomer = $proceed( $customer, $passwordHash );
+		if( $this->isCustomerNew( $customer ) ) {
+			$this->customerApi->registerNewCustomer($savedCustomer->getId());
+		}
+
+		return $savedCustomer;
+	}
+
+	/**
+	 * @param CustomerInterface $customer
+	 *
+	 * @return bool
+	 */
+	protected function isCustomerNew( CustomerInterface $customer ): bool
+	{
+		return $customer->getId() == null;
+	}
+}
+```
+
+The test is now green again.

@@ -22,7 +22,7 @@ class CustomerRepositoryPlugin
 	/**
 	 * CustomerRepositoryPlugin constructor.
 	 */
-	public function __construct(ExternalCustomerApi $customerApi)
+	public function __construct( ExternalCustomerApi $customerApi )
 	{
 		$this->customerApi = $customerApi;
 	}
@@ -34,9 +34,21 @@ class CustomerRepositoryPlugin
 		$passwordHash = null
 	)
 	{
-		if($customer->getId() == null) {
-			$this->customerApi->registerNewCustomer();
+		$savedCustomer = $proceed( $customer, $passwordHash );
+		if ( $this->isCustomerNew( $customer ) ) {
+			$this->customerApi->registerNewCustomer( $savedCustomer->getId() );
 		}
-		return $proceed($customer, $passwordHash);
+
+		return $savedCustomer;
+	}
+
+	/**
+	 * @param CustomerInterface $customer
+	 *
+	 * @return bool
+	 */
+	protected function isCustomerNew( CustomerInterface $customer ): bool
+	{
+		return $customer->getId() == null;
 	}
 }
