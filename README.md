@@ -15,6 +15,13 @@ zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ cp -f dev/tests/in
 
 ## The Around Interceptor Kata
 
+An around plugin should have these tests as a minimum:
+* A test that ensures the plugin class can be instantiated
+* A test that ensures the right return value is passed
+* A test that ensures the business logic of the plugin does what it is supposed to (i.e. That specific methods are called the required number of times with the required arguments)
+* If something should not happen based on passed arguments, that should be tested as well (e.g. A customer registration method should not be called for registered customers)
+* A test that ensures that any specific exceptions that the wrapped method throws are of the right type (e.g. `CustomerRepositoryInterface::save()` throws a `\Magento\Framework\Exception\State\InputMismatchException` If the provided customer email already exists)
+
 Create the Plugin test:
 
 ```php
