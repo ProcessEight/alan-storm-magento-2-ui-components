@@ -14,35 +14,37 @@ use Magento\Customer\Api\Data\CustomerInterface;
 
 class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 {
-	/** @var  $_customerRepositoryPlugin CustomerRepositoryPlugin */
+	/** @var  CustomerRepositoryPlugin */
 	protected $_customerRepositoryPlugin;
 
-	/** @var  $_mockCustomerRepository CustomerRepositoryInterface */
+	/** @var  CustomerRepositoryInterface|\PHPUnit_Framework_MockObject_MockObject */
 	protected $_mockCustomerRepository;
 
 	/**
-	 * @var $_mockCustomerToBeSaved CustomerInterface
+	 * @var CustomerInterface|\PHPUnit_Framework_MockObject_MockObject
 	 */
 	protected $_mockCustomerToBeSaved;
 
 	/**
-	 * @var $_mockSavedCustomer CustomerInterface
+	 * @var CustomerInterface|\PHPUnit_Framework_MockObject_MockObject
 	 */
 	protected $_mockSavedCustomer;
 
-	public function __invoke(CustomerInterface $customer, $passwordHash)
+	/** @var ExternalCustomerApi|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockExternalCustomerApi;
+
+	public function __invoke( CustomerInterface $customer, $passwordHash )
 	{
 		return $this->_mockSavedCustomer;
 	}
 
 	protected function setUp()
 	{
-		$this->_mockCustomerRepository      = $this->getMock( CustomerRepositoryInterface::class);
-		$this->_mockCustomerToBeSaved       = $this->getMock( CustomerInterface::class);
-		$this->_mockSavedCustomer           = $this->getMock( CustomerInterface::class);
-		$this->_customerRepositoryPlugin    = new CustomerRepositoryPlugin();
-
-//		$this->_mockExternalCustomerApi     = $this->getMock( ExternalCustomerApi::class, ['registerNewCustomer']);
+		$this->_mockCustomerRepository   = $this->getMock( CustomerRepositoryInterface::class );
+		$this->_mockCustomerToBeSaved    = $this->getMock( CustomerInterface::class );
+		$this->_mockSavedCustomer        = $this->getMock( CustomerInterface::class );
+		$this->_mockExternalCustomerApi = $this->getMock( ExternalCustomerApi::class, [ 'registerNewCustomer' ] );
+		$this->_customerRepositoryPlugin = new CustomerRepositoryPlugin($this->_mockExternalCustomerApi);
 	}
 
 	protected function callAroundSavePlugin()
@@ -51,6 +53,7 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 		$proceed      = $this;
 		$customer     = $this->_mockCustomerToBeSaved;
 		$passwordHash = null;
+
 		return $this->_customerRepositoryPlugin->aroundSave( $subject, $proceed, $customer, $passwordHash );
 	}
 
@@ -64,8 +67,15 @@ class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
 		$this->assertSame( $this->_mockSavedCustomer, $this->callAroundSavePlugin() );
 	}
 
-//	public function testItNotifiesTheExternalApiForNewCustomers( )
-//	{
-//		$this->_mockCustomerToBeSaved->method('getId')->willReturn(null);
-//	}
-//}
+	public function testItNotifiesTheExternalApiForNewCustomers()
+	{
+		// The getId() method of the customer to be saved will return null because it has not been saved yet
+		$this->_mockCustomerToBeSaved->method( 'getId' )->willReturn( null );
+
+		// The registerNewCustomer method of the API is expected to be called exactly once, because a customer can only register once
+		$this->_mockExternalCustomerApi->expects( $this->once() )->method( 'registerNewCustomer' );
+
+		// Now call the plugin so PHPUnit can test it
+		$this->callAroundSavePlugin();
+	}
+}

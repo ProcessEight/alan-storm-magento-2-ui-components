@@ -14,6 +14,19 @@ use Magento\Customer\Api\Data\CustomerInterface;
 
 class CustomerRepositoryPlugin
 {
+	/**
+	 * @var ExternalCustomerApi
+	 */
+	private $customerApi;
+
+	/**
+	 * CustomerRepositoryPlugin constructor.
+	 */
+	public function __construct(ExternalCustomerApi $customerApi)
+	{
+		$this->customerApi = $customerApi;
+	}
+
 	public function aroundSave(
 		CustomerRepositoryInterface $subject,
 		callable $proceed,
@@ -21,6 +34,7 @@ class CustomerRepositoryPlugin
 		$passwordHash = null
 	)
 	{
+		$this->customerApi->registerNewCustomer();
 		return $proceed($customer, $passwordHash);
 	}
 }

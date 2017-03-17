@@ -203,5 +203,109 @@ class CustomerRepositoryPlugin
 	}
 }
 ```
-The test succeeds again. Of course, this plugin doesn't actually do anything yet.
+The test succeeds again. Of course, this plugin doesn't actually do anything yet. The purpose of this plugin is to call an API method, which should only be called when a new customer registers.
 
+Let's write a test that ensures that that API method is called and called exactly once (because a customer can't register twice).
+
+```php
+<?php
+
+namespace Mage2Kata\Interceptor\Plugin;
+
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+
+class CustomerRepositoryPluginTest extends \PHPUnit_Framework_TestCase
+{
+	/** @var  CustomerRepositoryPlugin */
+	protected $_customerRepositoryPlugin;
+
+	/** @var  CustomerRepositoryInterface|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockCustomerRepository;
+
+	/** @var CustomerInterface|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockCustomerToBeSaved;
+
+	/** @var CustomerInterface|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockSavedCustomer;
+
+	/** @var ExternalCustomerApi|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockExternalCustomerApi;
+
+	public function __invoke( CustomerInterface $customer, $passwordHash )
+	{
+		return $this->_mockSavedCustomer;
+	}
+
+	protected function setUp()
+	{
+		$this->_mockCustomerRepository   = $this->getMock( CustomerRepositoryInterface::class );
+		$this->_mockCustomerToBeSaved    = $this->getMock( CustomerInterface::class );
+		$this->_mockSavedCustomer        = $this->getMock( CustomerInterface::class );
+		$this->_customerRepositoryPlugin = new CustomerRepositoryPlugin($this->_mockExternalCustomerApi);
+
+		$this->_mockExternalCustomerApi = $this->getMock( ExternalCustomerApi::class, [ 'registerNewCustomer' ] );
+	}
+
+	protected function callAroundSavePlugin()
+	{
+		$subject      = $this->_mockCustomerRepository;
+		$proceed      = $this;
+		$customer     = $this->_mockCustomerToBeSaved;
+		$passwordHash = null;
+
+		return $this->_customerRepositoryPlugin->aroundSave( $subject, $proceed, $customer, $passwordHash );
+	}
+
+	public function testItNotifiesTheExternalApiForNewCustomers()
+	{
+		// The getId() method of the customer to be saved will return null because it has not been saved yet
+		$this->_mockCustomerToBeSaved->method( 'getId' )->willReturn( null );
+
+		// The registerNewCustomer method of the API is expected to be called exactly once, because a customer can only register once
+		$this->_mockExternalCustomerApi->expects( $this->once() )->method( 'registerNewCustomer' );
+	}
+}
+```
+Note the following things:
+* We are writing a test to test the functionality of a class and method that hasn't been written yet. The test defines the functionality of the method, thus ensuring code coverage of the class and method when we do write it (in the next step).
+* The previous mocks we've created have been mocks of existing, core, classes. The class for our API, `ExternalCustomerApi`, doesn't exist yet, so we need to tell PHPUnit which methods it has before so it knows about them (PHPUnit knows about the methods in the other mock objects because it uses Reflection to detect which methods a class has).
+* We want to call methods on our API object inside the `aroundSave()` plugin method, so we'll need to inject our `ExternalCustomerApi` object into the plugin class. Hence, we add our `_mockExternalCustomerApi` object to the `CustomerRepositoryPlugin` class constructor.
+
+The test fails. To make it pass we need to inject the `ExternalCustomerApi` object into the `CustomerRepositoryPlugin` constructor and we need to call the `registerNewCustomer()` method in the `aroundSave()` plugin method exactly once. Let's do that:
+
+***Pro tip:*** PhpStorm can generate the constructor for you by pressing `Ctrl+N`.
+
+```php
+<?php
+
+namespace Mage2Kata\Interceptor\Plugin;
+
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+
+class CustomerRepositoryPlugin
+{
+	/** @var ExternalCustomerApi */
+	private $customerApi;
+
+	/**
+	 * CustomerRepositoryPlugin constructor.
+	 */
+	public function __construct(ExternalCustomerApi $customerApi)
+	{
+		$this->customerApi = $customerApi;
+	}
+
+	public function aroundSave(
+		CustomerRepositoryInterface $subject,
+		callable $proceed,
+		CustomerInterface $customer,
+		$passwordHash = null
+	)
+	{
+		$this->customerApi->registerNewCustomer();
+		return $proceed($customer, $passwordHash);
+	}
+}
+```
