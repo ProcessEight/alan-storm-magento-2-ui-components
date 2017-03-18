@@ -692,6 +692,37 @@ Things to note:
 * We define the `registerNewCustomer` method as a parameter when mocking the class because the class does not exist, so PHPUnit will not be able to use Reflection on it to determine what methods the class has.
 * We tell Magento to always use our mock by telling the object manager to instantiate the object with the `shared` parameter. This makes the object behave like a singleton.
 
+This isn't a real test though, because there are no assertions or expectations. Let's add some:
+```php
+/**
+ * @magentoDataFixture Magento/Customer/_files/customer.php
+ */
+public function testTheExternalApiIsCalledWhenANewCustomerIsSaved()
+{
+    $this->setMagentoArea( Area::AREA_WEBAPI_REST );
+
+    $mockExternalCustomerApi = $this->getMock( ExternalCustomerApi::class, ['registerNewCustomer']);
+    $mockExternalCustomerApi->expects( $this->once())->method( 'registerNewCustomer');
+    $this->objectManager->configure( [ExternalCustomerApi::class => ['shared' => true]]);
+    $this->objectManager->addSharedInstance( $mockExternalCustomerApi, ExternalCustomerApi::class);
+
+    /** @var CustomerRepositoryInterface $customerRepository */
+    $customerRepository = $this->objectManager->create( CustomerRepositoryInterface::class );
+
+    $customer = $customerRepository->get( 'customer@example.com' );
+    $customer->setId(null);
+    $customer->setEmail('another-customer@example.com');
+
+    $customerRepository->save( $customer );
+}
+```
+Things to note:
+* We add a new expectation on the customer mock which says 'registerNewCustomer should be called exactly once'.
+* We set the ID to null, because the customer is already registered and therefore already has an ID. So we trick Magento by resetting the ID, which is enough to make it think the mock is a new, unregistered customer.
+* We also supply a new email address to prevent any 'email address already registered' warnings.
+
+With the new data we set on the mock, the test succeeds.
+
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
 * [Running Unit Tests in PHPStorm](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_phpstorm.html)
