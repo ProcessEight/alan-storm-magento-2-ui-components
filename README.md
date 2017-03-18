@@ -729,8 +729,87 @@ If you want to run a test inside a transaction without using fixtures, you can u
 
 ## 5. The Route Config Kata [9]
 
+In which we add a new route (controller and action) and use tests to ensure they are properly configured.
 
+This test checks for the existence of a route:
+```php
+<?php
 
+namespace Mage2Kata\ActionController;
+
+use Magento\Framework\App\Route\ConfigInterface as RouteConfigInterface;
+use Magento\TestFramework\ObjectManager;
+
+class RouteConfigTest extends \PHPUnit_Framework_TestCase
+{
+	/**
+	 * @magentoAppArea frontend
+	 */
+	public function testRouteIsConfigured()
+	{
+		/** @var RouteConfigInterface $routeConfig */
+		$routeConfig = ObjectManager::getInstance()->create(RouteConfigInterface::class);
+		$this->assertContains('Mage2Kata_ActionController', $routeConfig->getModulesByFrontName('mage2kata'));
+	}
+}
+```
+Note that we tell magento this is a `frontend` route using the `@magentoAppArea` annotation. We didn't use this annotation for our previous tests using the `webapi_rest` area because it only works properly for the `frontend` and `adminhtml` areas at the moment.
+
+This code adds the route and makes the test pass:
+```xml
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="mage2kata_actioncontroller" frontName="mage2kata_actioncontroller">
+            <module name="Mage2Kata_ActionController"/>
+        </route>
+    </router>
+</config>
+```
+Now let's test the controller action class actually exists and can serve the request:
+```php
+/**
+ * Test that the frontend route /mage2kata/index/index actually exists and can be found
+ * @magentoAppArea frontend
+ */
+public function testMage2KataIndexIndexActionControllerIsFound()
+{
+    // Mock the request object
+    /** @var Request $request */
+    $request = $this->objectManager->create( Request::class );
+    $request->setModuleName( 'mage2kata' )
+            ->setControllerName( 'index' )
+            ->setActionName( 'index' );
+
+    // Ask the BaseRouter class to match our mock request to our controller action class
+    /** @var BaseRouter $baseRouter */
+    $baseRouter     = $this->objectManager->create( BaseRouter::class );
+    $expectedAction = \Mage2Kata\ActionController\Controller\Index\Index::class;
+    $this->assertInstanceOf( $expectedAction, $baseRouter->match( $request ) );
+}
+```
+Here's the code which makes the test pass, generated using Pestle:
+```php
+<?php
+namespace Mage2Kata\ActionController\Controller\Index;
+class Index extends \Magento\Framework\App\Action\Action
+{
+    protected $resultPageFactory;
+    
+    public function __construct(
+        \Magento\Framework\App\Action\Context $context,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory)
+    {
+        $this->resultPageFactory = $resultPageFactory;        
+        return parent::__construct($context);
+    }
+    
+    public function execute()
+    {
+        return $this->resultPageFactory->create();  
+    }
+}
+```
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
 * [Running Unit Tests in PHPStorm](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_phpstorm.html)
