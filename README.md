@@ -2,6 +2,15 @@
 
 Work related to the [Mage2Katas](https://www.youtube.com/channel/UCRFDWo7jTlrpEsJxzc7WyPw) series.
 
+* [Environment setup](#environment-setup)
+    * [Configuring PHPUnit](#configuring-phpunit)
+    * [Configuring PhpStorm](#configuring-phpstorm)
+    * [Configure the database (for integration tests)](#configure-the-database-for-integration-tests)
+* [1. The Module Skeleton Kata](#1-the-module-skeleton-kata)
+* [2. The Plugin Config Kata](#2-the-plugin-config-kata)
+* [3. The Around Interceptor Kata](#3-the-around-interceptor-kata)
+* [Sources](#sources)
+
 ## Environment setup
 
 ### Configuring PHPUnit
@@ -94,7 +103,7 @@ Use this sample `phpunit.xml` file:
     </listeners>
 </phpunit>
 ```
-## Configuring PhpStorm
+### Configuring PhpStorm
 Create a new `Run Configuration`:
 1. Go to `Run`, `Edit Configurations`.
 1. Create a new `PHPUnit` configuration with the following values:
@@ -106,7 +115,7 @@ Create a new `Run Configuration`:
         
 You can, of course, use different `phpunit.xml` config files for different types of test (integration, unit etc).
 
-## Configure the database (for integration tests)
+### Configure the database (for integration tests)
 
 Copy the `install-config-mysql-php.dist` file and update the database connection details accordingly:
 ```bash
@@ -618,8 +627,11 @@ class CustomerRepositoryPlugin
 	}
 }
 ```
-
 The test is now green again.
+
+## The Plugin Integration Test Kata
+
+
 
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
