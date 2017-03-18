@@ -122,6 +122,15 @@ Copy the `install-config-mysql-php.dist` file and update the database connection
 zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ cp -f dev/tests/integration/etc/install-config-mysql.php.dist dev/tests/integration/etc/install-config-mysql.php
 ```
 
+## Troubleshooting
+
+### Integration tests not behaving as expected
+
+Remember to clear the integration test cache if you've disabled the `TESTS_CLEANUP` environment variable:
+```bash
+zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ rm -rf dev/tests/integration/tmp/sandbox-*
+```
+
 ## 1. The Module Skeleton Kata
 
 * This assumes that the Magento 2 test framework (including integration tests) and your IDE are already setup and configured to run tests.
