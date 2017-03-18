@@ -863,17 +863,25 @@ class IndexTest extends \PHPUnit_Framework_TestCase
 		// Mock the Raw result object
 		$this->_mockRawResult = $this->getMock( RawResult::class );
 
-		// Mock the Result Factory
+		// Mock the Result Factory. The following two methods of doing so are equivalent.
 		/** @var ResultFactory|\PHPUnit_Framework_MockObject_MockObject $mockRawResultFactory */
-		$mockRawResultFactory = $this->getMock(ResultFactory::class, ['create'], [], '', false);
-		
+//		$mockRawResultFactory = $this->getMock(ResultFactory::class, ['create'], [], '', false);
+		$mockRawResultFactory = $this->getMockBuilder( ResultFactory::class )
+		                             ->setMethods( [ 'create' ] )
+		                             ->disableOriginalConstructor()
+		                             ->getMock();
+
 		// Set our expectation (when we call ResultFactory::create(ResultFactory::TYPE_RAW) we expect to get a RawResult object back)
-		$mockRawResultFactory->method('create')->with(ResultFactory::TYPE_RAW)->willReturn($this->_mockRawResult);
+		$mockRawResultFactory->method( 'create' )->with( ResultFactory::TYPE_RAW )->willReturn( $this->_mockRawResult );
 
+		// Mock the ActionContext object. The following two methods of doing so are equivalent.
 		/** @var ActionContext|\PHPUnit_Framework_MockObject_MockObject $mockContext */
-		$mockContext = $this->getMock(ActionContext::class, [], [], '', false);
+//		$mockContext = $this->getMock( ActionContext::class, [], [], '', false );
+		$mockContext = $this->getMockBuilder( ActionContext::class )
+		                    ->disableOriginalConstructor()
+		                    ->getMock();
 
-		$this->controller = new Index($mockContext, $mockRawResultFactory);
+		$this->controller = new Index( $mockContext, $mockRawResultFactory );
 	}
 
 	public function testReturnsResultInstance()
