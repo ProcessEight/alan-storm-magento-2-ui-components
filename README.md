@@ -723,6 +723,10 @@ Things to note:
 
 With the new data we set on the mock, the test succeeds.
 
+Using the `@magentoDataFixture` annotation means that the fixture and the test are run inside a transaction. Once the test finishes, the transaction is rolled back, so we don't need to do any cleanup (like deleting the customers we created).
+
+If you want to run a test inside a transaction without using fixtures, you can use the `@magentodbIsolation enabled` annotation instead.
+
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
 * [Running Unit Tests in PHPStorm](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_phpstorm.html)
