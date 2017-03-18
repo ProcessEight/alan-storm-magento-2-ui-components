@@ -131,7 +131,7 @@ Remember to clear the integration test cache if you've disabled the `TESTS_CLEAN
 zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ rm -rf dev/tests/integration/tmp/sandbox-*
 ```
 
-## 1. The Module Skeleton Kata
+## 1. The Module Skeleton Kata [5]
 
 * This assumes that the Magento 2 test framework (including integration tests) and your IDE are already setup and configured to run tests.
     * Refer to the DevDocs for a quick guide on setting up integration tests [[3]][3] and on setting up PhpStorm with PHPUnit [[4]][4]
@@ -211,11 +211,11 @@ If we run this test now, it will fail. If we create the `module.xml` file, then 
 
 So that's our extremely basic module created using TDD.
 
-## 2. The Plugin Config Kata
+## 2. The Plugin Config Kata [6]
 
 Awaiting merge in from MacBook.
 
-## 3. The Around Interceptor Kata
+## 3. The Around Interceptor Kata [7]
 
 An around plugin should have these tests as a minimum:
 * A test that ensures the plugin class can be instantiated
@@ -638,7 +638,7 @@ class CustomerRepositoryPlugin
 ```
 The test is now green again.
 
-## The Plugin Integration Test Kata
+## The Plugin Integration Test Kata [8]
 
 We'll create an integration test from scratch, using some of Magento's built-in annotations to help us.
 
@@ -735,3 +735,8 @@ If you want to run a test inside a transaction without using fixtures, you can u
 [2]: http://devdocs.magento.com/guides/v2.1/test/unit/writing_testable_code.html
 [3]: http://devdocs.magento.com/guides/v2.1/test/integration/integration_test_setup.html
 [4]: http://devdocs.magento.com/guides/v2.1/install-gde/docker/docker-phpstorm-project.html
+[5]: http://vinaikopp.com/2016/02/05/01_the_skeleton_module_kata/
+[6]: http://vinaikopp.com/2016/02/05/02_the_plugin_config_kata/
+[7]: http://vinaikopp.com/2016/02/22/03_the_around_interceptor_kata/
+[8]: http://vinaikopp.com/2016/03/07/04_the_plugin_integration_test_kata/
+[9]: http://vinaikopp.com/2016/03/21/05_the_route_config_kata/
