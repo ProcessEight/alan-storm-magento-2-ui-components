@@ -74,8 +74,16 @@ class CustomerRepositoryPluginIntegrationTest extends \PHPUnit_Framework_TestCas
 	{
 		$this->setMagentoArea( Area::AREA_WEBAPI_REST );
 
+		$mockExternalCustomerApi = $this->getMock( ExternalCustomerApi::class, ['registerNewCustomer']);
+		$this->objectManager->configure( [ExternalCustomerApi::class => ['shared' => true]]);
+		$this->objectManager->addSharedInstance( $mockExternalCustomerApi, ExternalCustomerApi::class);
+
 		/** @var CustomerRepositoryInterface $customerRepository */
-		$customerRepository = $this->objectManager->create(CustomerRepositoryInterface::class);
+		$customerRepository = $this->objectManager->create( CustomerRepositoryInterface::class );
+
+		$customer = $customerRepository->get( 'customer@example.com' );
+
+		$customerRepository->save( $customer );
 	}
 
 }

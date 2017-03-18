@@ -640,7 +640,57 @@ The test is now green again.
 
 ## The Plugin Integration Test Kata
 
+We'll create an integration test from scratch, using some of Magento's built-in annotations to help us.
 
+The plugin we're testing expects two objects to be present: `CustomerRepositoryInterface` and `CustomerInterface`. We'll need to mock these for our test:
+```php
+	/**
+	 * @magentoDataFixture Magento/Customer/_files/customer.php
+	 */
+	public function testTheExternalApiIsCalledWhenANewCustomerIsSaved()
+	{
+		/** @var CustomerRepositoryInterface $customerRepository */
+		$customerRepository = $this->objectManager->create( CustomerRepositoryInterface::class );
+
+		$customer = $customerRepository->get( 'customer@example.com' );
+
+		$customerRepository->save( $customer );
+	}
+```
+Things to note:
+* We use the `@magentoDataFixture` annotation to specify a customer fixture rather than mocking the customer in the test class.
+* Magento stores these fixtures in folders using the naming convention `_files`.
+* If you look at one of these files (e.g. `Magento/Customer/_files/customer.php`), you'll see it's just a data install script.
+* The filepath for these fixtures is relative to `/dev/tests/integration/testsuite/`
+
+The test succeeds because it does not call the plugin (we have configured the plugin in previous example to only run in the `webapi_rest` scope).
+
+In an integration test, you would normally test actual instances of classes rather than mocks. However, we don't have a concrete implementation of our API class (`ExternalCustomerApi`), so, for the purposes of this example, we'll mock it rather than creating it (in a real project, we would've created the class and written unit tests for it already):
+```php
+
+	/**
+	 * @magentoDataFixture Magento/Customer/_files/customer.php
+	 */
+	public function testTheExternalApiIsCalledWhenANewCustomerIsSaved()
+	{
+		$this->setMagentoArea( Area::AREA_WEBAPI_REST );
+
+		$mockExternalCustomerApi = $this->getMock( ExternalCustomerApi::class, ['registerNewCustomer']);
+		$this->objectManager->configure( [ExternalCustomerApi::class => ['shared' => true]]);
+		$this->objectManager->addSharedInstance( $mockExternalCustomerApi, ExternalCustomerApi::class);
+
+		/** @var CustomerRepositoryInterface $customerRepository */
+		$customerRepository = $this->objectManager->create( CustomerRepositoryInterface::class );
+
+		$customer = $customerRepository->get( 'customer@example.com' );
+
+		$customerRepository->save( $customer );
+	}
+```
+Things to note:
+* We set the Magento application area to `webapi_rest` to trigger our plugin.
+* We define the `registerNewCustomer` method as a parameter when mocking the class because the class does not exist, so PHPUnit will not be able to use Reflection on it to determine what methods the class has.
+* We tell Magento to always use our mock by telling the object manager to instantiate the object with the `shared` parameter. This makes the object behave like a singleton.
 
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
