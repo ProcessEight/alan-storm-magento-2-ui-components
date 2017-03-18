@@ -6,26 +6,25 @@ Work related to the [Mage2Katas](https://www.youtube.com/channel/UCRFDWo7jTlrpEs
     * [Configuring PHPUnit](#configuring-phpunit)
     * [Configuring PhpStorm](#configuring-phpstorm)
     * [Configure the database (for integration tests)](#configure-the-database-for-integration-tests)
-* [1. The Module Skeleton Kata](#1-the-module-skeleton-kata)
-* [2. The Plugin Config Kata](#2-the-plugin-config-kata)
-* [3. The Around Interceptor Kata](#3-the-around-interceptor-kata)
+* [Troubleshooting](#troubleshooting)
+    * [Integration tests not behaving as expected](#integration-tests-not-behaving-as-expected)
+* [1. The Module Skeleton Kata <a href="http://vinaikopp.com/2016/02/05/01_the_skeleton_module_kata/">5</a>](#1-the-module-skeleton-kata-5)
+* [2. The Plugin Config Kata <a href="http://vinaikopp.com/2016/02/05/02_the_plugin_config_kata/">6</a>](#2-the-plugin-config-kata-6)
+* [3. The Around Interceptor Kata <a href="http://vinaikopp.com/2016/02/22/03_the_around_interceptor_kata/">7</a>](#3-the-around-interceptor-kata-7)
+* [The Plugin Integration Test Kata <a href="http://vinaikopp.com/2016/03/07/04_the_plugin_integration_test_kata/">8</a>](#the-plugin-integration-test-kata-8)
+* [5. The Route Config Kata <a href="http://vinaikopp.com/2016/03/21/05_the_route_config_kata/">9</a>](#5-the-route-config-kata-9)
+* [6. The Action Controller TDD Kata <a href="http://vinaikopp.com/2016/04/04/06_the_action_controller_tdd_kata/">10</a>](#6-the-action-controller-tdd-kata-10)
 * [Sources](#sources)
 
 ## Environment setup
 
 ### Configuring PHPUnit
 
-Use this sample `phpunit.xml` file:
+Use this sample `phpunit.xml` file for integration tests:
 
 ```xml
 // File: dev/tests/integration/phpunit.xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-/**
- * Copyright © 2016 Magento. All rights reserved.
- * See COPYING.txt for license details.
- */
--->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.1/phpunit.xsd"
          colors="true"
@@ -84,23 +83,47 @@ Use this sample `phpunit.xml` file:
         <!--<const name="PERCONA_TOOLKIT_BIN_DIR" value=""/>-->
         <!-- CSV Profiler Output file -->
         <!--<const name="TESTS_PROFILER_FILE" value="profiler.csv"/>-->
-        <!-- Bamboo compatible CSV Profiler Output file name -->
-        <!--<const name="TESTS_BAMBOO_PROFILER_FILE" value="profiler.csv"/>-->
-        <!-- Metrics for Bamboo Profiler Output in PHP file that returns array -->
-        <!--<const name="TESTS_BAMBOO_PROFILER_METRICS_FILE" value="../../build/profiler_metrics.php"/>-->
         <!-- Magento mode for tests execution. Possible values are "default", "developer" and "production". -->
         <const name="TESTS_MAGENTO_MODE" value="developer"/>
         <!-- Minimum error log level to listen for. Possible values: -1 ignore all errors, and level constants form http://tools.ietf.org/html/rfc5424 standard -->
         <const name="TESTS_ERROR_LOG_LISTENER_LEVEL" value="-1"/>
-        <!-- Connection parameters for MongoDB library tests -->
-        <!--<const name="MONGODB_CONNECTION_STRING" value="mongodb://localhost:27017"/>-->
-        <!--<const name="MONGODB_DATABASE_NAME" value="magento_integration_tests"/>-->
     </php>
     <!-- Test listeners -->
     <listeners>
         <listener class="Magento\TestFramework\Event\PhpUnit"/>
         <listener class="Magento\TestFramework\ErrorLog\Listener"/>
     </listeners>
+</phpunit>
+```
+
+Use this sample `phpunit.xml` file for unit tests:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.1/phpunit.xsd"
+         colors="true"
+         bootstrap="./framework/bootstrap.php"
+        >
+    <testsuite name="Mage2Katas Unit Tests">
+        <directory suffix="Test.php">../../../app/code/*/*/Test/Unit</directory>
+    </testsuite>
+    <php>
+        <ini name="date.timezone" value="Europe/London"/>
+        <ini name="xdebug.max_nesting_level" value="200"/>
+    </php>
+    <filter>
+        <whitelist addUncoveredFilesFromWhiteList="true">
+            <directory suffix=".php">../../../app/code/*</directory>
+            <directory suffix=".php">../../../lib/internal/Magento</directory>
+            <directory suffix=".php">../../../setup/src/*</directory>
+            <exclude>
+                <directory>../../../app/code/*/*/Test</directory>
+                <directory>../../../lib/internal/*/*/Test</directory>
+                <directory>../../../lib/internal/*/*/*/Test</directory>
+                <directory>../../../setup/src/*/*/Test</directory>
+            </exclude>
+        </whitelist>
+    </filter>
 </phpunit>
 ```
 ### Configuring PhpStorm
@@ -113,7 +136,7 @@ Create a new `Run Configuration`:
         * Use alternative configuration file: `/path/to/magento/root/dev/tests/integration/phpunit.xml`
         * Test Runner options: `--testsuite "Mage2Kata Tests"`
         
-You can, of course, use different `phpunit.xml` config files for different types of test (integration, unit etc).
+The configuration for unit tests is identical - just substitute unit for integration above. 
 
 ### Configure the database (for integration tests)
 
@@ -121,6 +144,7 @@ Copy the `install-config-mysql-php.dist` file and update the database connection
 ```bash
 zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ cp -f dev/tests/integration/etc/install-config-mysql.php.dist dev/tests/integration/etc/install-config-mysql.php
 ```
+There are more detailed notes on configuring the environment for integration tests in the Magento 2 DevDocs [3]
 
 ## Troubleshooting
 
@@ -810,6 +834,60 @@ class Index extends \Magento\Framework\App\Action\Action
     }
 }
 ```
+## 6. The Action Controller TDD Kata [10]
+
+For the purpose of this kata, lets assume the controller will validate a given request is a POST request, and if so, pass the request parameters to an application layer use case class.
+
+In case of incomplete request parameters we want to return an appropriate error result, otherwise, if the process doesn’t throw an exception, we want to redirect the visitor to the homepage.
+
+The `execute()` method of the action controller class must return an instance of `\Magento\Framework\Controller\ResultInterface`. Let's write a test to ensure that it does:
+```php
+<?php
+namespace Mage2Kata\ActionController\Controller\Index;
+
+use Magento\Framework\App\Action\Context as ActionContext;
+use Magento\Framework\Controller\Result\Raw as RawResult;
+use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Controller\ResultInterface;
+
+class IndexTest extends \PHPUnit_Framework_TestCase
+{
+	/** @var Index */
+	protected $controller;
+
+	/** @var RawResult|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockRawResult;
+
+	protected function setUp()
+	{
+		// Mock the Raw result object
+		$this->_mockRawResult = $this->getMock( RawResult::class );
+
+		// Mock the Result Factory
+		/** @var ResultFactory|\PHPUnit_Framework_MockObject_MockObject $mockRawResultFactory */
+		$mockRawResultFactory = $this->getMock(ResultFactory::class, ['create'], [], '', false);
+		
+		// Set our expectation (when we call ResultFactory::create(ResultFactory::TYPE_RAW) we expect to get a RawResult object back)
+		$mockRawResultFactory->method('create')->with(ResultFactory::TYPE_RAW)->willReturn($this->_mockRawResult);
+
+		/** @var ActionContext|\PHPUnit_Framework_MockObject_MockObject $mockContext */
+		$mockContext = $this->getMock(ActionContext::class, [], [], '', false);
+
+		$this->controller = new Index($mockContext, $mockRawResultFactory);
+	}
+
+	public function testReturnsResultInstance()
+	{
+		$this->assertInstanceOf( ResultInterface::class, $this->controller->execute() );
+	}
+}
+```
+A standard frontend controller in Magento 2 is constructed with at least two arguments: `Magento\Framework\App\Action\Context` and `Magento\Framework\Controller\ResultFactory`. We use the `ResultFactory` to generate the appropriate `Result` object in the controller `execute` method. In the `setUp` method we mock all these objects and set our expectations as to how they are used.
+
+A note on `Result` objects: There are six types of `Result` object which can be generated with the `ResultFactory`, such as `Raw` (for outputting raw strings or binary data such as file downloads), `Json`, `Forward` to pass execution to another controller with using a redirect, `Redirect` to perform a HTTP redirect to another URI and `Page`, which triggers the layout XML rendering process.
+
+A brief overview of these types is available on the Edmonds Commerce blog ([11]) and a more detailed investigation is available on Magento Quickies ([12]).
+
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
 * [Running Unit Tests in PHPStorm](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_phpstorm.html)
@@ -823,3 +901,6 @@ class Index extends \Magento\Framework\App\Action\Action
 [7]: http://vinaikopp.com/2016/02/22/03_the_around_interceptor_kata/
 [8]: http://vinaikopp.com/2016/03/07/04_the_plugin_integration_test_kata/
 [9]: http://vinaikopp.com/2016/03/21/05_the_route_config_kata/
+[10]: http://vinaikopp.com/2016/04/04/06_the_action_controller_tdd_kata/
+[11]: https://edmondscommerce.github.io/magento-2-controller-output-types/
+[12]: http://magento-quickies.alanstorm.com/post/141260832260/magento-2-controller-result-objects
