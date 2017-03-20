@@ -950,6 +950,105 @@ File: app/code/Mage2Kata/ActionController/Controller/Index/Index.php
 		return $this->getMethodNotAllowedResult();
 	}
 ```
+### Reject the request if any required parameters are missing
+
+In this test, we use the fixture `incompleteArguments` to represent the missing arguments:
+```php
+	public function testReturns400BadRequestIfRequiredArgumentsAreMissing()
+	{
+		$incompleteArguments = [];
+		$this->_mockRequest->method( 'getMethod' )->willReturn( 'POST' );
+		$this->_mockRequest->method( 'getParams' )->willReturn( $incompleteArguments );
+
+		$this->_mockUseCase->expects( $this->once() )->method( 'processData' )->with( $incompleteArguments )->willThrowException( new RequiredArgumentMissingException( 'Test Exception: Required argument missing' ));
+
+		$this->_mockRawResult->expects( $this->once() )->method( 'setHttpResponseCode' )->with( 400 );
+
+		$this->controller->execute();
+	}
+```
+The `UseCase` class is the class which will contain the business logic required to process the submitted data. We haven't created that yet (and we won't, since this is an example), but that doesn't stop us from mocking the class and telling PHPUnit how it should work.
+
+Here's the logic to make the test pass.
+
+We mock and stub our `UseCase` business logic class:
+```php
+    protected function setUp()
+    {
+        // ... Previous code excised for brevity ...
+        
+        $mockContext->method( 'getRequest' )->willReturn( $this->_mockRequest );
+    
+        $this->_mockUseCase = $this->getMockBuilder( UseCase::class )
+                                   ->setMethods( ['processData'] )
+                                   ->disableOriginalConstructor()
+                                   ->getMock();
+    
+        $this->controller = new Index( $mockContext, $mockRawResultFactory, $this->_mockUseCase );
+    }
+```
+Then we update our controller class:
+```php
+File: app/code/Mage2Kata/ActionController/Controller/Index/Index.php
+/// .. namespaced classes excluded for brevity ...
+class Index extends Action
+{
+	/** @var UseCase */
+	private $useCase;
+
+	public function __construct(
+		Context $context,
+		ResultFactory $resultFactory,
+		UseCase $useCase
+	)
+	{
+		parent::__construct( $context );
+		$this->resultFactory = $resultFactory;
+		$this->useCase       = $useCase;
+	}
+
+	public function execute()
+	{
+		return ! ($this->getRequest()->getMethod() === 'POST') 
+		? $this->_getMethodNotAllowedResult() 
+		: $this->processRequestAndRedirect();
+	}
+
+	/**
+	 * @return \Magento\Framework\Controller\Result\Raw|\Magento\Framework\Controller\ResultInterface
+	 */
+	protected function processRequestAndRedirect()
+	{
+		try {
+			$this->useCase->processData( $this->getRequest()->getParams() );
+
+			return $this->resultFactory->create( ResultFactory::TYPE_RAW );
+
+		} catch ( RequiredArgumentMissingException $exception ) {
+			$result = $this->resultFactory->create( ResultFactory::TYPE_RAW );
+            $result->setHttpResponseCode( 400 );
+            
+            return $result;
+		}
+	}
+}
+```
+As you can see, we've injected our non-existent `UseCase` class and built our logic around it. If the `UseCase::processData` method throws an exception, it is caught and the request is rejected with a `HTTP 400` response code.
+
+Finally, we create the exception class referenced in the test:
+```php
+File: app/code/Mage2Kata/ActionController/Model/Exception/RequiredArgumentMissingException.php
+
+namespace Mage2Kata\ActionController\Model\Exception;
+
+class RequiredArgumentMissingException extends \RuntimeException
+{
+
+}
+```
+
+
+
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
 * [Running Unit Tests in PHPStorm](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_phpstorm.html)
