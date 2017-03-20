@@ -7,6 +7,9 @@ use Magento\Framework\Controller\ResultFactory;
 
 class Index extends Action
 {
+	/** @var \Magento\Framework\Controller\Result\Raw */
+	protected $result;
+
 	/** @var \Magento\Framework\Controller\ResultFactory */
 	protected $resultFactory;
 
@@ -19,8 +22,19 @@ class Index extends Action
 		$this->resultFactory = $resultFactory;
 	}
 
+	/**
+	 * @return \Magento\Framework\Controller\Result\Raw|\Magento\Framework\Controller\ResultInterface
+	 */
+	protected function getMethodNotAllowedResult()
+	{
+		$this->result = $this->resultFactory->create( ResultFactory::TYPE_RAW );
+		$this->result->setHttpResponseCode( 405 );
+
+		return $this->result;
+	}
+
 	public function execute()
 	{
-		return $this->resultFactory->create( ResultFactory::TYPE_RAW );
+		return $this->getMethodNotAllowedResult();
 	}
 }

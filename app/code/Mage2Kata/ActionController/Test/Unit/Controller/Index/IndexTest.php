@@ -10,9 +10,9 @@ namespace Mage2Kata\ActionController\Controller\Index;
 
 use Magento\Framework\App\Action\Context as ActionContext;
 use Magento\Framework\Controller\Result\Raw as RawResult;
-use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\HTTP\PhpEnvironment\Request;
 
 class IndexTest extends \PHPUnit_Framework_TestCase
 {
@@ -21,6 +21,9 @@ class IndexTest extends \PHPUnit_Framework_TestCase
 
 	/** @var RawResult|\PHPUnit_Framework_MockObject_MockObject */
 	protected $_mockRawResult;
+
+	/** @var Request|\PHPUnit_Framework_MockObject_MockObject */
+	protected $_mockRequest;
 
 	protected function setUp()
 	{
@@ -45,11 +48,26 @@ class IndexTest extends \PHPUnit_Framework_TestCase
 		                    ->disableOriginalConstructor()
 		                    ->getMock();
 
+		// Mock the request
+		$this->_mockRequest = $this->getMockBuilder( Request::class )
+		                           ->disableOriginalConstructor()
+		                           ->getMock();
+
+		$mockContext->method( 'getRequest' )->willReturn( $this->_mockRequest );
+
 		$this->controller = new Index( $mockContext, $mockRawResultFactory );
 	}
 
 	public function testReturnsResultInstance()
 	{
+		$this->_mockRequest->method( 'getMethod' )->willReturn( 'POST' );
 		$this->assertInstanceOf( ResultInterface::class, $this->controller->execute() );
+	}
+
+	public function testReturns405MethodNotAllowedForNonPostRequests()
+	{
+		$this->_mockRequest->method( 'getMethod' )->willReturn( 'GET' );
+		$this->_mockRawResult->expects( $this->once())->method( 'setHttpResponseCode' )->with( 405 );
+		$this->controller->execute();
 	}
 }
