@@ -119,6 +119,8 @@ class IndexTest extends \PHPUnit_Framework_TestCase
 		$this->_mockRequest->method( 'getMethod' )->willReturn( 'POST' );
 		$this->_mockRequest->method( 'getParams' )->willReturn( $completeArguments );
 
+		$this->_mockRedirectResult->expects($this->once())->method('setPath');
+
 		$this->assertSame( $this->_mockRedirectResult, $this->controller->execute() );
 	}
 }

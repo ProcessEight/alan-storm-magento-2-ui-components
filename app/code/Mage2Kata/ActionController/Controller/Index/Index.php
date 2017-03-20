@@ -75,7 +75,9 @@ class Index extends Action
 		try {
 			$this->useCase->processData( $this->getRequest()->getParams() );
 
-			return $this->_resultRedirectFactory->create();
+			$redirect = $this->_resultRedirectFactory->create();
+			$redirect->setPath('/');
+			return $redirect;
 
 		} catch ( RequiredArgumentMissingException $exception ) {
 			return $this->_getBadRequestResult();
