@@ -4,10 +4,14 @@ namespace Mage2Kata\ActionController\Controller\Index;
 use Mage2Kata\ActionController\Model\Exception\RequiredArgumentMissingException;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\Controller\ResultFactory;
 
 class Index extends Action
 {
+	/** @var RedirectFactory */
+	protected $_resultRedirectFactory;
+
 	/** @var \Magento\Framework\Controller\Result\Raw */
 	protected $_result;
 
@@ -28,6 +32,7 @@ class Index extends Action
 		parent::__construct( $context );
 		$this->resultFactory = $resultFactory;
 		$this->useCase       = $useCase;
+		$this->_resultRedirectFactory = $context->getResultRedirectFactory();
 	}
 
 	/**
@@ -70,7 +75,7 @@ class Index extends Action
 		try {
 			$this->useCase->processData( $this->getRequest()->getParams() );
 
-			return $this->resultFactory->create( ResultFactory::TYPE_RAW );
+			return $this->_resultRedirectFactory->create();
 
 		} catch ( RequiredArgumentMissingException $exception ) {
 			return $this->_getBadRequestResult();

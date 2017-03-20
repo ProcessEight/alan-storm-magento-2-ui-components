@@ -1046,8 +1046,67 @@ class RequiredArgumentMissingException extends \RuntimeException
 
 }
 ```
+### Test that valid requests are redirected to the homepage
+```php
+    protected function setUp
+    {
+		// ... previous code excised ...
+    
+		// Mock the objects required to redirect to the homepage
+		$this->_mockRedirectResult = $this->getMockBuilder( Redirect::class )
+		                                  ->disableOriginalConstructor()
+		                                  ->getMock();
 
+		$mockRedirectResultFactory = $this->getMockBuilder( RedirectFactory::class )
+		                                  ->setMethods( [ 'create' ] )
+		                                  ->disableOriginalConstructor()
+		                                  ->getMock();
+		$mockRedirectResultFactory->method( 'create')->willReturn( $this->_mockRedirectResult);
 
+		$mockContext->method( 'getResultRedirectFactory' )->willReturn( $mockRedirectResultFactory );
+		
+		// ... remaining code excised ...
+    }
+	public function testRedirectsToHomepageIfRequestWasValid()
+	{
+		$completeArguments = [ 'foo' => 123 ];
+		$this->_mockRequest->method( 'getMethod' )->willReturn( 'POST' );
+		$this->_mockRequest->method( 'getParams' )->willReturn( $completeArguments );
+
+		$this->assertSame( $this->_mockRedirectResult, $this->controller->execute() );
+	}
+```
+Here's the logic to make the test pass:
+```php
+	/** @var RedirectFactory */
+	protected $_resultRedirectFactory;
+
+	public function __construct(
+		Context $context,
+		ResultFactory $resultFactory,
+		UseCase $useCase
+	)
+	{
+        // ... previous code excised ...
+
+		$this->_resultRedirectFactory = $context->getResultRedirectFactory();
+	}
+
+    /**
+     * @return \Magento\Framework\Controller\Result\Raw|\Magento\Framework\Controller\ResultInterface
+    */
+    protected function processRequestAndRedirect()
+    {
+        try {
+            $this->useCase->processData( $this->getRequest()->getParams() );
+    
+            return $this->_resultRedirectFactory->create();
+    
+        } catch ( RequiredArgumentMissingException $exception ) {
+            return $this->_getBadRequestResult();
+        }
+    }
+```
 
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
