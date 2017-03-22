@@ -155,7 +155,7 @@ Remember to clear the integration test cache if you've disabled the `TESTS_CLEAN
 zone8@zone8-aurora-r5:/var/www/vhosts/magento2.localhost.com$ rm -rf dev/tests/integration/tmp/sandbox-*
 ```
 
-## 1. The Module Skeleton Kata [5]
+## 1. The Module Skeleton Kata
 
 * This assumes that the Magento 2 test framework (including integration tests) and your IDE are already setup and configured to run tests.
     * Refer to the DevDocs for a quick guide on setting up integration tests [[3]][3] and on setting up PhpStorm with PHPUnit [[4]][4]
@@ -235,11 +235,15 @@ If we run this test now, it will fail. If we create the `module.xml` file, then 
 
 So that's our extremely basic module created using TDD.
 
-## 2. The Plugin Config Kata [6]
+Full article ([5])
+
+## 2. The Plugin Config Kata
 
 Awaiting merge in from MacBook.
 
-## 3. The Around Interceptor Kata [7]
+Full article ([6])
+
+## 3. The Around Interceptor Kata
 
 An around plugin should have these tests as a minimum:
 * A test that ensures the plugin class can be instantiated
@@ -662,7 +666,9 @@ class CustomerRepositoryPlugin
 ```
 The test is now green again.
 
-## The Plugin Integration Test Kata [8]
+Full article ([7])
+
+## The Plugin Integration Test Kata
 
 We'll create an integration test from scratch, using some of Magento's built-in annotations to help us.
 
@@ -751,7 +757,9 @@ Using the `@magentoDataFixture` annotation means that the fixture and the test a
 
 If you want to run a test inside a transaction without using fixtures, you can use the `@magentodbIsolation enabled` annotation instead.
 
-## 5. The Route Config Kata [9]
+Full article ([8])
+
+## 5. The Route Config Kata
 
 In which we add a new route (controller and action) and use tests to ensure they are properly configured.
 
@@ -834,7 +842,10 @@ class Index extends \Magento\Framework\App\Action\Action
     }
 }
 ```
-## 6. The Action Controller TDD Kata [10]
+
+Full article ([9])
+
+## 6. The Action Controller TDD Kata
 
 For the purpose of this kata, lets assume that:
 * The controller will validate that a given request is a POST request.
@@ -1107,6 +1118,115 @@ Here's the logic to make the test pass:
         }
     }
 ```
+Full article ([10])
+
+## The Action Controller Integration Test Kata
+
+The purpose of these tests is to test that our action controller can accept `HTTP GET` requests and reject `HTTP POST` requests.
+
+### Test that an action controller can accept a `HTTP GET` request
+
+```php
+<?php
+
+namespace Mage2Kata\ActionController\Controller\Index;
+
+use Magento\TestFramework\Request;
+use Magento\TestFramework\TestCase\AbstractController;
+
+class IndexIntegrationTest extends AbstractController
+{
+	/**
+	 * Test that we can actually load the controller action
+	 */
+	public function testCanHandleGetRequests()
+	{
+		$this->getRequest()->setMethod( Request::METHOD_GET );
+		$this->dispatch( 'mage2kata/index/index');
+		$this->assertSame( 200, $this->getResponse()->getHttpResponseCode());
+		$this->assertContains( '<body', $this->getResponse()->getBody());
+	}
+}
+```
+Notes:
+* For this test class, we extend from `AbstractController`, rather than the usual `PHPUnit_Framework_TestCase`.
+* The `AbstractController` class allows us to call the `dispatch` method, simulating an actual request.
+* We didn't need to specify an `@magentoAppArea` annotation because the `AbstractController` takes care of that for us as well. 
+* We test for both HTTP Status Code `200` and that the response contains the string `<body` because an empty action controller `execute` method will also return `200`.
+
+To make the test pass, we need to add a page result object to the action controller class:
+```php
+<?php
+
+namespace Mage2Kata\ActionController\Controller\Index;
+
+use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Framework\Controller\Result\ForwardFactory;
+
+class Index extends Action
+{
+	/** @var PageFactory */
+	private $pageFactory;
+
+	public function __construct( Context $context, PageFactory $pageFactory )
+	{
+		$this->pageFactory    = $pageFactory;
+		parent::__construct( $context );
+	}
+
+	public function execute()
+	{
+		return $this->pageFactory->create();
+	}
+}
+```
+### Test that an action controller can only accept a `HTTP GET` request
+```php
+
+	/**
+	 * Test that we can only make GET requests to controller action (for that is what this scenario requires)
+	 */
+	public function testCannotHandlePostRequests()
+	{
+		$this->getRequest()->setMethod( Request::METHOD_POST );
+		$this->dispatch( 'mage2kata/index/index' );
+		$this->assertSame( 404, $this->getResponse()->getHttpResponseCode() );
+		$this->assert404NotFound();
+	}
+```
+Note that the `assert404NotFound` assertion (provided by the `AbstractController` class) does not actually check the HTTP status code - it just asserts that  the request is redirected to the Magento `noroute` (`404`) page. So we use the `assertSame` assertion to make sure we actually get a HTTP `404` status code.
+
+To make the test pass, we check the request method and inject a `ForwardFactory` to forward the request if it was not made using a `GET` method.
+```php
+
+	/** @var PageFactory */
+	private $pageFactory;
+	
+	/** @var ForwardFactory */
+	private $forwardFactory;
+
+	public function __construct( Context $context, PageFactory $pageFactory, ForwardFactory $forwardFactory )
+	{
+		parent::__construct( $context );
+		$this->pageFactory    = $pageFactory;
+		$this->forwardFactory = $forwardFactory;
+	}
+
+	public function execute()
+	{
+	    if($this->getRequest()->getMethod() === 'GET') {
+            $forward = $this->forwardFactory->create();
+            $forward->forward( 'noroute' );
+            return $forward;
+        } else {
+    		return $this->pageFactory->create();
+        }
+	}
+```
+
+Full article ([13])
 
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
@@ -1124,3 +1244,4 @@ Here's the logic to make the test pass:
 [10]: http://vinaikopp.com/2016/04/04/06_the_action_controller_tdd_kata/
 [11]: https://edmondscommerce.github.io/magento-2-controller-output-types/
 [12]: http://magento-quickies.alanstorm.com/post/141260832260/magento-2-controller-result-objects
+[13]: http://vinaikopp.com/2016/04/18/07_the_action_controller_integration_test_kata/

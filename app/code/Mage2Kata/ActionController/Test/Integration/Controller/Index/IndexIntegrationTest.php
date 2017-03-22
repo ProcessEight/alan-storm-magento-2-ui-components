@@ -2,6 +2,7 @@
 
 namespace Mage2Kata\ActionController\Controller\Index;
 
+use Magento\TestFramework\Request;
 use Magento\TestFramework\TestCase\AbstractController;
 
 class IndexIntegrationTest extends AbstractController
@@ -16,10 +17,10 @@ class IndexIntegrationTest extends AbstractController
 	 */
 	public function testCanHandleGetRequests()
 	{
-		$this->getRequest()->setMethod('GET');
-		$this->dispatch( 'mage2kata/index/index');
-		$this->assertSame( 200, $this->getResponse()->getHttpResponseCode());
-		$this->assertContains( '<body', $this->getResponse()->getBody());
+		$this->getRequest()->setMethod( Request::METHOD_GET );
+		$this->dispatch( 'mage2kata/index/index' );
+		$this->assertSame( 200, $this->getResponse()->getHttpResponseCode() );
+		$this->assertContains( '<body', $this->getResponse()->getBody() );
 	}
 
 	/**
@@ -27,9 +28,9 @@ class IndexIntegrationTest extends AbstractController
 	 */
 	public function testCannotHandlePostRequests()
 	{
-		$this->getRequest()->setMethod( 'POST');
-		$this->dispatch( 'mage2kata/index/index');
-		$this->assertSame( 404, $this->getResponse()->getHttpResponseCode());
+		$this->getRequest()->setMethod( Request::METHOD_POST );
+		$this->dispatch( 'mage2kata/index/index' );
+		$this->assertSame( 404, $this->getResponse()->getHttpResponseCode() );
 		$this->assert404NotFound();
 	}
 }
