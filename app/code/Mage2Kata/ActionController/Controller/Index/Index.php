@@ -1,86 +1,68 @@
 <?php
+
 namespace Mage2Kata\ActionController\Controller\Index;
 
-use Mage2Kata\ActionController\Model\Exception\RequiredArgumentMissingException;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
-use Magento\Framework\Controller\Result\RedirectFactory;
-use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Framework\Controller\Result\ForwardFactory;
 
 class Index extends Action
 {
-	/** @var RedirectFactory */
-	protected $_resultRedirectFactory;
-
-	/** @var \Magento\Framework\Controller\Result\Raw */
-	protected $_result;
-
-	/** @var \Magento\Framework\Controller\ResultFactory */
-	protected $resultFactory;
-
 	/**
-	 * @var UseCase
+	 * @var PageFactory
 	 */
-	private $useCase;
+	private $pageFactory;
+	/**
+	 * @var ForwardFactory
+	 */
+	private $forwardFactory;
 
-	public function __construct(
-		Context $context,
-		ResultFactory $resultFactory,
-		UseCase $useCase
-	)
+	public function __construct( Context $context, PageFactory $pageFactory, ForwardFactory $forwardFactory)
 	{
+
 		parent::__construct( $context );
-		$this->resultFactory = $resultFactory;
-		$this->useCase       = $useCase;
-		$this->_resultRedirectFactory = $context->getResultRedirectFactory();
-	}
-
-	/**
-	 * @return \Magento\Framework\Controller\Result\Raw|\Magento\Framework\Controller\ResultInterface
-	 */
-	protected function _getMethodNotAllowedResult()
-	{
-		$this->_result = $this->resultFactory->create( ResultFactory::TYPE_RAW );
-		$this->_result->setHttpResponseCode( 405 );
-
-		return $this->_result;
+		$this->pageFactory = $pageFactory;
+		$this->forwardFactory = $forwardFactory;
 	}
 
 	public function execute()
 	{
-		return ! $this->isPostRequest() ? $this->_getMethodNotAllowedResult() : $this->processRequestAndRedirect();
+		return $this->isGetRequest() ? $this->handleGetRequest() : $this->handleNonGetRequest();
 	}
 
-	protected function _getBadRequestResult()
+	/**
+	 * @return \Magento\Framework\App\Request\Http
+	 */
+	public function getRequest()
 	{
-		$this->_result = $this->resultFactory->create( ResultFactory::TYPE_RAW );
-		$this->_result->setHttpResponseCode( 400 );
+		return parent::getRequest();
+	}
 
-		return $this->_result;
+	/**
+	 * @return \Magento\Framework\Controller\Result\Forward
+	 */
+	protected function handleNonGetRequest(): \Magento\Framework\Controller\Result\Forward
+	{
+		$forward = $this->forwardFactory->create();
+		$forward->forward( 'noroute' );
+
+		return $forward;
+	}
+
+	/**
+	 * @return \Magento\Framework\View\Result\Page
+	 */
+	protected function handleGetRequest(): \Magento\Framework\View\Result\Page
+	{
+		return $this->pageFactory->create();
 	}
 
 	/**
 	 * @return bool
 	 */
-	protected function isPostRequest(): bool
+	protected function isGetRequest(): bool
 	{
-		return ( $this->getRequest()->getMethod() === 'POST' );
-	}
-
-	/**
-	 * @return \Magento\Framework\Controller\Result\Raw|\Magento\Framework\Controller\ResultInterface
-	 */
-	protected function processRequestAndRedirect()
-	{
-		try {
-			$this->useCase->processData( $this->getRequest()->getParams() );
-
-			$redirect = $this->_resultRedirectFactory->create();
-			$redirect->setPath('/');
-			return $redirect;
-
-		} catch ( RequiredArgumentMissingException $exception ) {
-			return $this->_getBadRequestResult();
-		}
+		return $this->getRequest()->getMethod() === 'GET';
 	}
 }
