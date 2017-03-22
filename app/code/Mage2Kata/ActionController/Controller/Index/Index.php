@@ -18,11 +18,11 @@ class Index extends Action
 	 */
 	private $forwardFactory;
 
-	public function __construct( Context $context, PageFactory $pageFactory, ForwardFactory $forwardFactory)
+	public function __construct( Context $context, PageFactory $pageFactory, ForwardFactory $forwardFactory )
 	{
 
 		parent::__construct( $context );
-		$this->pageFactory = $pageFactory;
+		$this->pageFactory    = $pageFactory;
 		$this->forwardFactory = $forwardFactory;
 	}
 
@@ -32,6 +32,9 @@ class Index extends Action
 	}
 
 	/**
+	 * We're overriding this class here so we can redefine the PHPDOC class type hint,
+	 * to enable PhpStorm auto-completion. This should be removed in production code.
+	 *
 	 * @return \Magento\Framework\App\Request\Http
 	 */
 	public function getRequest()
