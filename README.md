@@ -1201,32 +1201,73 @@ Note that the `assert404NotFound` assertion (provided by the `AbstractController
 To make the test pass, we check the request method and inject a `ForwardFactory` to forward the request if it was not made using a `GET` method.
 ```php
 
-	/** @var PageFactory */
-	private $pageFactory;
-	
-	/** @var ForwardFactory */
-	private $forwardFactory;
+/** @var PageFactory */
+private $pageFactory;
 
-	public function __construct( Context $context, PageFactory $pageFactory, ForwardFactory $forwardFactory )
-	{
-		parent::__construct( $context );
-		$this->pageFactory    = $pageFactory;
-		$this->forwardFactory = $forwardFactory;
-	}
+/** @var ForwardFactory */
+private $forwardFactory;
 
-	public function execute()
-	{
-	    if($this->getRequest()->getMethod() === 'GET') {
-            $forward = $this->forwardFactory->create();
-            $forward->forward( 'noroute' );
-            return $forward;
-        } else {
-    		return $this->pageFactory->create();
-        }
-	}
+public function __construct( Context $context, PageFactory $pageFactory, ForwardFactory $forwardFactory )
+{
+    parent::__construct( $context );
+    $this->pageFactory    = $pageFactory;
+    $this->forwardFactory = $forwardFactory;
+}
+
+public function execute()
+{
+    if($this->getRequest()->getMethod() === 'GET') {
+        $forward = $this->forwardFactory->create();
+        $forward->forward( 'noroute' );
+        return $forward;
+    } else {
+        return $this->pageFactory->create();
+    }
+}
 ```
 
 Full article ([13])
+
+## The DI Arguments Config Kata
+
+As a scenario for this kata we will be configuring the objects used to read, validate and access data from a custom XML configuration file.
+
+### Test config data virtual type
+```php
+namespace Mage2Kata\DiConfig;
+
+/**
+ * Test that the mapping of a virtual type to an actual type (i.e. class) is correctly configured
+ */
+public function testConfigDataVirtualType()
+{
+    /** @var ObjectManagerConfig $diConfig */
+    $diConfig = ObjectManager::getInstance()->get(ObjectManagerConfig::class);
+
+    $virtualType = Model\Config\Data\Virtual::class;
+    $expectedType = \Magento\Framework\Config\Data::class;
+
+    $this->assertSame( $expectedType, $diConfig->getInstanceType( $virtualType));
+}
+```
+Notes:
+* The class this test is contained in has the namespace `Mage2Kata\DiConfig`, so the `Model\Config\Data\Virtual` class is automatically prefixed with the namespace.
+* The use of the suffix `Virtual` for the virtual type class name is a convention to identify it as a virtual type, but it is not a requirement
+
+
+
+The following logic makes the test pass:
+```xml
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Mage2Kata\DiConfig\Model\Config\Data\Virtual" type="\Magento\Framework\Config\Data">
+        
+    </virtualType>
+</config>
+```
+
+Full article ([14])
 
 ## Sources
 * [Running Unit Tests in the CLI](http://devdocs.magento.com/guides/v2.1/test/unit/unit_test_execution_cli.html)
@@ -1245,3 +1286,4 @@ Full article ([13])
 [11]: https://edmondscommerce.github.io/magento-2-controller-output-types/
 [12]: http://magento-quickies.alanstorm.com/post/141260832260/magento-2-controller-result-objects
 [13]: http://vinaikopp.com/2016/04/18/07_the_action_controller_integration_test_kata/
+[14]: http://vinaikopp.com/2016/05/05/08_the_di_arguments_config_kata/
