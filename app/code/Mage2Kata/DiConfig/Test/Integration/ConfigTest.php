@@ -26,10 +26,10 @@ use Magento\TestFramework\ObjectManager;
 
 class DiConfigConfigTest extends \PHPUnit_Framework_TestCase
 {
-	public function testNothing()
-	{
-		$this->markTestSkipped('Testing that PhpStorm and test framework is setup correctly');
-	}
+//	public function testNothing()
+//	{
+//		$this->markTestSkipped('Testing that PhpStorm and test framework is setup correctly');
+//	}
 
 	private $moduleName = 'Mage2Kata_DiConfig';
 

@@ -1234,6 +1234,7 @@ As a scenario for this kata we will be configuring the objects used to read, val
 
 ### Test config data virtual type
 ```php
+File: app/code/Mage2Kata/DiConfig/Test/Integration/DiConfigConfigurationTest.php
 namespace Mage2Kata\DiConfig;
 
 /**
@@ -1254,10 +1255,9 @@ Notes:
 * The class this test is contained in has the namespace `Mage2Kata\DiConfig`, so the `Model\Config\Data\Virtual` class is automatically prefixed with the namespace.
 * The use of the suffix `Virtual` for the virtual type class name is a convention to identify it as a virtual type, but it is not a requirement
 
-
-
 The following logic makes the test pass:
 ```xml
+File: app/code/Mage2Kata/DiConfig/etc/di.xml
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
@@ -1266,7 +1266,185 @@ The following logic makes the test pass:
     </virtualType>
 </config>
 ```
+The test passes because internally, Magento 2 uses the `_virtualTypes` array property of the `\Magento\Framework\ObjectManager\Config\Config` class to manage the mapping of virtual type 'class' name to concrete class name.
+ 
+### Testing the arguments passed to a virtual type
 
+To test that the arguments we pass into a virtual type are of the type the concrete class expects, we can write this test:
+```php
+File: app/code/Mage2Kata/DiConfig/Test/Integration/DiConfigConfigurationTest.php
+public function testConfigDataVirtualType()
+{
+    $virtualType = Model\Config\Data\Virtual::class;
+    $this->assertVirtualType(\Magento\Framework\Config\Data::class, $virtualType);
+ 
+    $argumentName = 'cacheId';
+    $arguments = $this->getDiConfig()->getArguments($virtualType);
+    $this->assertArrayHasKey( $argumentName, $arguments);
+}
+
+/**
+ * @param string $expectedType
+ * @param string $type
+ */
+private function assertVirtualType($expectedType, $type)
+{
+    $this->assertSame($expectedType, $this->getDiConfig()->getInstanceType($type));
+}
+
+/**
+ * @return ObjectManagerConfig
+ */
+protected function getDiConfig(): ObjectManagerConfig
+{
+    $diConfig = ObjectManager::getInstance()->get( ObjectManagerConfig::class );
+
+    return $diConfig;
+}
+
+```
+To make the test pass, we add the `cacheId` argument to the virtual type in the `di.xml`:
+```xml
+File: app/code/Mage2Kata/DiConfig/etc/di.xml
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Mage2Kata\DiConfig\Model\Config\Data\Virtual" type="\Magento\Framework\Config\Data">
+        <arguments>
+            <argument name="cacheId" xsi:type="string">mage2kata_unitmap_config</argument>
+        </arguments>
+    </virtualType>
+</config>
+```
+The next argument we need to test for is an object:
+```php
+File: app/code/Mage2Kata/DiConfig/Test/Integration/DiConfigConfigurationTest.php
+
+/**
+ * Test that the mapping of a virtual type to an actual type (i.e. class) is correctly configured
+ */
+public function testConfigDataVirtualType()
+{
+    $virtualType = Model\Config\Data\Virtual::class;
+    $this->assertVirtualType( \Magento\Framework\Config\Data::class, $virtualType );
+    $this->assertDiArgumentSame( 'mage2kata_unitmap_config', $virtualType, 'cacheId' );
+
+    $argumentName = 'reader';
+    $expectedType = Model\Config\Data\Reader::class;
+
+    $arguments = $this->getDiConfig()->getArguments( $virtualType );
+    if ( ! isset( $arguments[ $argumentName ] ) ) {
+        $this->fail( sprintf( 'No argument "%s" configured for %s', $argumentName, $virtualType ) );
+    }
+    if ( ! isset( $arguments[ $argumentName ][ 'instance' ] ) ) {
+        $this->fail( sprintf( 'Argument "%s" for %s is not xsi:type="object"', $argumentName, $virtualType ) );
+    }
+    $this->assertSame( $expectedType, $arguments[$argumentName]['instance']);
+}
+```
+Virtual type arguments which reference a class are added to a sub-array of the `_virtualType` array we mentioned earlier. Therefore we check for the existence of a `instance` sub-array element and assert that it contains the correct concrete class name.
+
+Adding the argument to the `di.xml` makes the test pass:
+```xml
+File: app/code/Mage2Kata/DiConfig/etc/di.xml
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Mage2Kata\DiConfig\Model\Config\Data\Virtual" type="\Magento\Framework\Config\Data">
+        <arguments>
+            <argument name="cacheId" xsi:type="string">mage2kata_unitmap_config</argument>
+            <argument name="reader" xsi:type="object">Mage2Kata\DiConfig\Model\Config\Data\Reader</argument>
+        </arguments>
+    </virtualType>
+</config>
+```
+The final class and `di.xml` are shown below. Note the that the `testConfigDataVirtualType` method should be decomposed so it does not violate the Single Responsibility Principle.
+```php
+File: app/code/Mage2Kata/DiConfig/Test/Integration/DiConfigConfigurationTest.php
+<?php
+
+namespace Mage2Kata\DiConfig;
+
+use Magento\Framework\ObjectManager\ConfigInterface as ObjectManagerConfig;
+use Magento\TestFramework\ObjectManager;
+
+class DiConfigConfigurationTest extends \PHPUnit_Framework_TestCase
+{
+//	public function testEnvironmentIsSetupCorrectly()
+//	{
+//		$this->assertTrue( true );
+//	}
+
+	/**
+	 * Test that the mapping of a virtual type to an actual type (i.e. class) is correctly configured
+	 */
+	public function testConfigDataVirtualType()
+	{
+		$virtualType = Model\Config\Data\Virtual::class;
+		$this->assertVirtualType( \Magento\Framework\Config\Data::class, $virtualType );
+		$this->assertDiArgumentSame( 'mage2kata_unitmap_config', $virtualType, 'cacheId' );
+
+		$argumentName = 'reader';
+		$expectedType = Model\Config\Data\Reader::class;
+
+		$arguments = $this->getDiConfig()->getArguments( $virtualType );
+		if ( ! isset( $arguments[ $argumentName ] ) ) {
+			$this->fail( sprintf( 'No argument "%s" configured for %s', $argumentName, $virtualType ) );
+		}
+		if ( ! isset( $arguments[ $argumentName ][ 'instance' ] ) ) {
+			$this->fail( sprintf( 'Argument "%s" for %s is not xsi:type="object"', $argumentName, $virtualType ) );
+		}
+		$this->assertSame( $expectedType, $arguments[$argumentName]['instance']);
+	}
+
+	/**
+	 * @return ObjectManagerConfig
+	 */
+	protected function getDiConfig(): ObjectManagerConfig
+	{
+		$diConfig = ObjectManager::getInstance()->get( ObjectManagerConfig::class );
+
+		return $diConfig;
+	}
+
+	/**
+	 * @param string $expectedType
+	 * @param string $virtualType
+	 */
+	protected function assertVirtualType( $expectedType, $virtualType )
+	{
+		$this->assertSame( $expectedType, $this->getDiConfig()->getInstanceType( $virtualType ) );
+	}
+
+	/**
+	 * @param string $expected
+	 * @param string $virtualType
+	 * @param string $argumentName
+	 */
+	protected function assertDiArgumentSame( $expected, $virtualType, $argumentName )
+	{
+		$arguments = $this->getDiConfig()->getArguments( $virtualType );
+		if ( ! isset( $arguments[ $argumentName ] ) ) {
+			$this->fail( sprintf( 'No argument "%s" configured for %s', $argumentName, $virtualType ) );
+
+		}
+		$this->assertSame( $expected, $arguments[ $argumentName ] );
+	}
+}
+```
+```xml
+File: app/code/Mage2Kata/DiConfig/etc/di.xml
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Mage2Kata\DiConfig\Model\Config\Data\Virtual" type="\Magento\Framework\Config\Data">
+        <arguments>
+            <argument name="cacheId" xsi:type="string">mage2kata_unitmap_config</argument>
+            <argument name="reader" xsi:type="object">Mage2Kata\DiConfig\Model\Config\Data\Reader</argument>
+        </arguments>
+    </virtualType>
+</config>
+```
 Full article ([14])
 
 ## Sources
