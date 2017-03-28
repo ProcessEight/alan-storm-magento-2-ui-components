@@ -1,0 +1,9 @@
+<components xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_definition.xsd">
+    <pulsestorm_simple class="Pulsestorm\SimpleUiComponent\Component\Simple">
+        <argument name="data" xsi:type="array">
+            <item name="template" xsi:type="string">templates/our-template</item>
+            <item name="message" xsi:type="string">Hello again world</item>
+        </argument>
+    </pulsestorm_simple>
+</components>
