@@ -17,4 +17,20 @@
         </argument>
 
     </dataSource>
+    <htmlContent name="first_ever_child">
+        <argument name="block" xsi:type="object">Magento\Framework\View\Element\Text</argument>
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="component" xsi:type="string">Pulsestorm_SimpleUiComponent/js/pulsestorm_simple_component</item>
+            </item>
+        </argument>
+    </htmlContent>
+    <htmlContent name="second_ever_child">
+        <argument name="block" xsi:type="object">Magento\Framework\View\Element\Text</argument>
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="component" xsi:type="string">Pulsestorm_SimpleUiComponent/js/pulsestorm_simple_component</item>
+            </item>
+        </argument>
+    </htmlContent>
 </pulsestorm_simple>
