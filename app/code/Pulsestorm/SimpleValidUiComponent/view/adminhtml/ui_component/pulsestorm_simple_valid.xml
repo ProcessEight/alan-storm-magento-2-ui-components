@@ -18,14 +18,14 @@
             <argument name="requestFieldName" xsi:type="string">id</argument>
         </argument>
     </dataSource>
-    <htmlContent name="our_first_content">
-        <argument name="block" xsi:type="object">Pulsestorm\SimpleValidUiComponent\Block\Example</argument>
-    </htmlContent>
-    <!--<htmlContent class="Pulsestorm\SimpleValidUiComponent\Component\Simple"  name="our_first_content">
+    <!--<htmlContent name="our_first_content">-->
+        <!--<argument name="block" xsi:type="object">Pulsestorm\SimpleValidUiComponent\Block\Example</argument>-->
+    <!--</htmlContent>-->
+    <htmlContent class="Pulsestorm\SimpleValidUiComponent\Component\Simple"  name="our_first_content">
         <argument name="data" xsi:type="array">
             <item name="config" xsi:type="array">
                 <item name="component" xsi:type="string">Pulsestorm_SimpleValidUiComponent/js/pulsestorm_simple_component</item>
             </item>
         </argument>
-    </htmlContent>-->
+    </htmlContent>
 </container>
