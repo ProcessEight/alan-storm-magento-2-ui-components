@@ -1,7 +1,7 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
     <argument name="data" xsi:type="array">
-        <item name="template" xsi:type="string">templates/pulsestorm_simple_valid/default</item>
+        <item name="template" xsi:type="string">template/pulsestorm_simple_valid/default</item>
     </argument>
     <dataSource name="pulsestorm_simple_valid_data_source">
         <argument name="dataProvider" xsi:type="configurableObject">
@@ -18,4 +18,14 @@
             <argument name="requestFieldName" xsi:type="string">id</argument>
         </argument>
     </dataSource>
+    <htmlContent name="our_first_content">
+        <argument name="block" xsi:type="object">Pulsestorm\SimpleValidUiComponent\Block\Example</argument>
+    </htmlContent>
+    <!--<htmlContent class="Pulsestorm\SimpleValidUiComponent\Component\Simple"  name="our_first_content">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="component" xsi:type="string">Pulsestorm_SimpleValidUiComponent/js/pulsestorm_simple_component</item>
+            </item>
+        </argument>
+    </htmlContent>-->
 </container>
