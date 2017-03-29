@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Pulsestorm_SimpleValidUiComponent::a_menu_item" resource="Pulsestorm_SimpleValidUiComponent::menu_1"
+             title="Hello Simple Valid Ui Component" action="pulsestorm_simplevaliduicomponent/index/index"
+             module="Pulsestorm_SimpleValidUiComponent" sortOrder="1" parent="Magento_Backend::system_other_settings"
+             dependsOnModule="Magento_Backend"/>
+    </menu>
+</config>
